@@ -353,38 +353,79 @@ function resetDraws() {
   remaining.value = TOTAL_DRAWS === Infinity ? Infinity : TOTAL_DRAWS
 }
 
-/* ---------------- 重置抽奖验证（名称 + ID） ---------------- */
+/* ---------------- 抽奖资格获取（游戏名称 + 用户ID） ---------------- */
+// 目前暂无后端：前端模拟 —— 名称与 ID 不为空即视为获取成功。
+// 接入后端后，只需在 submitQualify() 中把模拟延时换成真实接口校验即可。
 
-// 管理员凭据：只有输入匹配才能重置抽奖次数，可自行修改这两行
-const RESET_ADMIN_NAME = 'kirin'
-const RESET_ADMIN_ID = '2024'
+const QUALIFY_USER_KEY = 'lottery-qualify-user'
 
-const resetModalOpen = ref(false)
-const resetName = ref('')
-const resetId = ref('')
-const resetError = ref('')
+const qualifyModalOpen = ref(false)
+const gameName = ref('')
+const gameId = ref('')
+const qualifyError = ref('')
+// 弹窗状态：input 填写中 / submitting 提交中 / success 获取成功
+const qualifyState = ref('input')
 
-function openResetModal() {
-  resetName.value = ''
-  resetId.value = ''
-  resetError.value = ''
-  resetModalOpen.value = true
-}
-
-function closeResetModal() {
-  resetModalOpen.value = false
-}
-
-/** 校验通过才真正执行重置 */
-function confirmReset() {
-  const nameOk = resetName.value.trim() === RESET_ADMIN_NAME
-  const idOk = resetId.value.trim() === RESET_ADMIN_ID
-  if (nameOk && idOk) {
-    resetDraws()
-    closeResetModal()
-  } else {
-    resetError.value = nameOk ? 'ID 不正确' : '名称不正确'
+function openQualifyModal() {
+  qualifyError.value = ''
+  qualifyState.value = 'input'
+  // 回填上次填写的信息（保存在本地浏览器）
+  try {
+    const saved = JSON.parse(localStorage.getItem(QUALIFY_USER_KEY) || 'null')
+    if (saved) {
+      gameName.value = saved.name || ''
+      gameId.value = saved.id || ''
+    } else {
+      gameName.value = ''
+      gameId.value = ''
+    }
+  } catch (e) {
+    gameName.value = ''
+    gameId.value = ''
   }
+  qualifyModalOpen.value = true
+}
+
+function closeQualifyModal() {
+  qualifyModalOpen.value = false
+}
+
+/** 提交资格申请：非空校验 → 模拟请求 → 成功发放次数 */
+function submitQualify() {
+  if (qualifyState.value === 'submitting') return
+
+  const name = gameName.value.trim()
+  const id = gameId.value.trim()
+  if (!name && !id) {
+    qualifyError.value = '请输入游戏名称和用户ID'
+    return
+  }
+  if (!name) {
+    qualifyError.value = '请输入游戏名称'
+    return
+  }
+  if (!id) {
+    qualifyError.value = '请输入用户ID'
+    return
+  }
+
+  qualifyError.value = ''
+  qualifyState.value = 'submitting'
+
+  // 模拟后端请求（接入真实接口时替换此段）
+  setTimeout(() => {
+    try {
+      localStorage.setItem(QUALIFY_USER_KEY, JSON.stringify({ name, id }))
+    } catch (e) { /* ignore */ }
+
+    resetDraws() // 发放抽奖次数
+    qualifyState.value = 'success'
+  }, 600)
+}
+
+/** 成功页点击「开始抽奖」关闭弹窗 */
+function finishQualify() {
+  closeQualifyModal()
 }
 
 onMounted(startShimmer)
@@ -408,13 +449,13 @@ onBeforeUnmount(() => {
     ✏️
   </button>
 
-  <!-- 隐形入口：固定在页面左上角，点击弹出验证弹窗，验证通过才重置抽奖次数 -->
+  <!-- 隐形入口：固定在页面左上角，点击弹出「获取抽奖资格」弹窗 -->
   <button
     class="secret-reset"
     type="button"
-    aria-label="重置抽奖次数"
-    title="重置抽奖次数"
-    @click="openResetModal"
+    aria-label="获取抽奖资格"
+    title="获取抽奖资格"
+    @click="openQualifyModal"
   >
     🔄
   </button>
@@ -519,45 +560,70 @@ onBeforeUnmount(() => {
     </div>
   </Transition>
 
-  <!-- 重置抽奖验证弹窗：名称 + ID 校验通过才能重置 -->
+  <!-- 获取抽奖资格弹窗：填写游戏名称 + 用户ID（暂无后端，非空即成功） -->
   <Transition name="pop">
-    <div v-if="resetModalOpen" class="result-mask reset-mask" @click.self="closeResetModal">
+    <div v-if="qualifyModalOpen" class="result-mask reset-mask" @click.self="closeQualifyModal">
       <div class="result-dialog reset-dialog">
-        <button class="dialog-close" @click="closeResetModal">✕</button>
-        <p class="editor-title">🔒 重置抽奖次数</p>
-        <p class="editor-subtitle">
-          该操作将恢复全部抽奖次数，请输入管理员名称与 ID 验证
-        </p>
+        <button class="dialog-close" @click="closeQualifyModal">✕</button>
 
-        <div class="reset-fields">
-          <label class="reset-field">
-            <span>名称</span>
-            <input
-              v-model="resetName"
-              type="text"
-              placeholder="请输入管理员名称"
-              autocomplete="off"
-              @keyup.enter="confirmReset"
-            />
-          </label>
-          <label class="reset-field">
-            <span>ID</span>
-            <input
-              v-model="resetId"
-              type="password"
-              placeholder="请输入管理员 ID"
-              autocomplete="off"
-              @keyup.enter="confirmReset"
-            />
-          </label>
-        </div>
+        <!-- 填写表单态 -->
+        <template v-if="qualifyState !== 'success'">
+          <p class="editor-title">🎁 获取抽奖资格</p>
+          <p class="editor-subtitle">
+            填写你的游戏名称与用户ID，即可获得本轮抽奖机会
+          </p>
 
-        <p class="editor-error">{{ resetError || '　' }}</p>
+          <div class="reset-fields">
+            <label class="reset-field">
+              <span>🎮 游戏名称</span>
+              <input
+                v-model="gameName"
+                type="text"
+                maxlength="20"
+                placeholder="请输入你的游戏名称"
+                autocomplete="off"
+                :disabled="qualifyState === 'submitting'"
+                @keyup.enter="submitQualify"
+              />
+            </label>
+            <label class="reset-field">
+              <span>🆔 用户ID</span>
+              <input
+                v-model="gameId"
+                type="text"
+                maxlength="20"
+                placeholder="请输入你的用户ID"
+                autocomplete="off"
+                :disabled="qualifyState === 'submitting'"
+                @keyup.enter="submitQualify"
+              />
+            </label>
+          </div>
 
-        <div class="editor-footer">
-          <button class="ghost-btn" @click="closeResetModal">取消</button>
-          <button class="dialog-button slim" @click="confirmReset">确认重置</button>
-        </div>
+          <p class="editor-error">{{ qualifyError || '　' }}</p>
+
+          <div class="editor-footer">
+            <button class="ghost-btn" :disabled="qualifyState === 'submitting'" @click="closeQualifyModal">取消</button>
+            <button class="dialog-button slim" :disabled="qualifyState === 'submitting'" @click="submitQualify">
+              {{ qualifyState === 'submitting' ? '获取中…' : '获取资格' }}
+            </button>
+          </div>
+        </template>
+
+        <!-- 成功态 -->
+        <template v-else>
+          <div class="qualify-success">
+            <div class="success-badge">✓</div>
+            <p class="editor-title">资格获取成功！</p>
+            <p class="editor-subtitle">
+              欢迎你，<b class="success-name">{{ gameName.trim() }}</b
+              >！已为你发放 <b>{{ TOTAL_DRAWS === Infinity ? '∞' : TOTAL_DRAWS }}</b> 次抽奖机会
+            </p>
+            <div class="editor-footer single">
+              <button class="dialog-button slim" @click="finishQualify">开始抽奖 🎉</button>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
   </Transition>
@@ -1122,7 +1188,7 @@ onBeforeUnmount(() => {
   transform: scale(0.6);
 }
 
-/* ---------------- 重置验证弹窗 ---------------- */
+/* ---------------- 获取抽奖资格弹窗 ---------------- */
 .reset-dialog {
   width: min(88vw, 340px);
 }
@@ -1141,14 +1207,16 @@ onBeforeUnmount(() => {
 }
 
 .reset-field span {
-  flex: 0 0 42px;
+  flex: 0 0 86px;
   text-align: right;
-  font-size: 14px;
+  font-size: 13px;
   color: #8a93a6;
+  white-space: nowrap;
 }
 
 .reset-field input {
   flex: 1;
+  min-width: 0;
   height: 40px;
   padding: 0 12px;
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -1157,7 +1225,7 @@ onBeforeUnmount(() => {
   color: inherit;
   font-size: 15px;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
 }
 
 .reset-field input::placeholder {
@@ -1167,5 +1235,52 @@ onBeforeUnmount(() => {
 .reset-field input:focus {
   border-color: var(--primary, #ffb02e);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #ffb02e) 25%, transparent);
+}
+
+.reset-field input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dialog-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* 成功态 */
+.qualify-success {
+  padding-top: 6px;
+  text-align: center;
+}
+
+.success-badge {
+  width: 64px;
+  height: 64px;
+  margin: 4px auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #34d399, #10b981);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.45);
+  animation: pop-check 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pop-check {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.success-name {
+  color: var(--primary, #ffb02e);
+}
+
+.editor-footer.single {
+  justify-content: center;
+  margin-top: 20px;
 }
 </style>
