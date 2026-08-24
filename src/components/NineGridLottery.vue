@@ -638,6 +638,7 @@ onBeforeUnmount(() => {
           <img class="result-img" :src="winner.prize.image || fallbackImg" alt="" />
         </div>
         <!-- <p class="result-name">{{ winner.prize.name }}</p> -->
+        <p class="result-ship-tip">🎁 奖品将在 72 小时内通过邮件发送至您的邮箱，请注意查收哦～</p>
         <button class="dialog-button" @click="closeResult">知道了</button>
       </div>
     </div>
@@ -1150,6 +1151,15 @@ onBeforeUnmount(() => {
   height: 96px;
   object-fit: contain;
   vertical-align: middle;
+}
+
+/* 奖品发货提示 */
+.result-ship-tip {
+  margin: 10px auto 0;
+  max-width: 240px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #9a8f83;
 }
 
 @keyframes bounce {
