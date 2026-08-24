@@ -677,7 +677,7 @@ onBeforeUnmount(() => {
         <div class="result-icon">
           <img class="result-img" :src="winner.prize.image || fallbackImg" alt="" />
         </div>
-        <!-- <p class="result-name">{{ winner.prize.name }}</p> -->
+        <p class="result-name">{{ winner.prize.name }}</p>
         <p class="result-ship-tip">奖品将在 72 小时内通过邮件发送至您的邮箱，请注意查收哦～</p>
         <button class="dialog-button" @click="closeResult">知道了</button>
       </div>
