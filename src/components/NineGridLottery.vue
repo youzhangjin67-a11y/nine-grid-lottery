@@ -293,9 +293,12 @@ try {
 
 const isLoggedIn = computed(() => !!(user.value && user.value.name))
 
-/** 退出登录：清空用户态与剩余次数（保留本地回填信息便于下次登录） */
+/** 退出登录：清空用户态与剩余次数，同时清除本地保存的登录信息（下次登录不回填） */
 function logout() {
   user.value = null
+  try {
+    localStorage.removeItem(QUALIFY_USER_KEY)
+  } catch (e) { /* ignore */ }
   clearTimeout(settleTimer)
   winner.value = null
   remaining.value = 0
