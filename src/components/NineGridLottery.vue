@@ -478,17 +478,17 @@ onBeforeUnmount(() => {
     title="自定义奖品"
     @click="openEditor"
   >
-    ✏️
+    编辑
   </button>
 
   <!-- 登录条：位于「幸运大抽奖」标题下方 -->
   <div class="login-bar">
     <template v-if="isLoggedIn">
-      <span class="login-welcome">👤 {{ user.name }}</span>
+      <span class="login-welcome">{{ user.name }}</span>
       <button class="login-btn ghost" type="button" @click="logout">退出登录</button>
     </template>
     <template v-else>
-      <button class="login-btn primary" type="button" @click="openQualifyModal">🔐 登录</button>
+      <button class="login-btn primary" type="button" @click="openQualifyModal">登录</button>
       <span class="login-tip">登录后即可获得 {{ TOTAL_DRAWS === Infinity ? '∞' : TOTAL_DRAWS }} 次抽奖机会</span>
     </template>
   </div>
@@ -605,14 +605,14 @@ onBeforeUnmount(() => {
 
         <!-- 填写表单态 -->
         <template v-if="qualifyState !== 'success'">
-          <p class="editor-title">🎁 获取抽奖资格</p>
+          <p class="editor-title">获取抽奖资格</p>
           <p class="editor-subtitle">
             填写你的游戏名称与用户ID，即可获得本轮抽奖机会
           </p>
 
           <div class="reset-fields">
             <label class="reset-field">
-              <span>🎮 游戏名称</span>
+              <span>游戏名称</span>
               <input
                 v-model="gameName"
                 type="text"
@@ -624,7 +624,7 @@ onBeforeUnmount(() => {
               />
             </label>
             <label class="reset-field">
-              <span>🆔 用户ID</span>
+              <span>用户ID</span>
               <input
                 v-model="gameId"
                 type="text"
@@ -657,7 +657,7 @@ onBeforeUnmount(() => {
               >！已为你发放 <b>{{ TOTAL_DRAWS === Infinity ? '∞' : TOTAL_DRAWS }}</b> 次抽奖机会
             </p>
             <div class="editor-footer single">
-              <button class="dialog-button slim" @click="finishQualify">开始抽奖 🎉</button>
+              <button class="dialog-button slim" @click="finishQualify">开始抽奖</button>
             </div>
           </div>
         </template>
@@ -670,12 +670,12 @@ onBeforeUnmount(() => {
     <div v-if="winner" class="result-mask" @click.self="closeResult">
       <div class="result-dialog">
         <button class="dialog-close" @click="closeResult">✕</button>
-        <p class="result-title">🎉 恭喜中奖 🎉</p>
+        <p class="result-title">恭喜中奖</p>
         <div class="result-icon">
           <img class="result-img" :src="winner.prize.image || fallbackImg" alt="" />
         </div>
         <!-- <p class="result-name">{{ winner.prize.name }}</p> -->
-        <p class="result-ship-tip">🎁 奖品将在 72 小时内通过邮件发送至您的邮箱，请注意查收哦～</p>
+        <p class="result-ship-tip">奖品将在 72 小时内通过邮件发送至您的邮箱，请注意查收哦～</p>
         <button class="dialog-button" @click="closeResult">知道了</button>
       </div>
     </div>
@@ -702,7 +702,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 12.5px;
+  letter-spacing: 1px;
   line-height: 1;
   border: none;
   border-radius: 50%;
