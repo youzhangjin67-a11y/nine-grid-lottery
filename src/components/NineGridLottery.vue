@@ -353,6 +353,40 @@ function resetDraws() {
   remaining.value = TOTAL_DRAWS === Infinity ? Infinity : TOTAL_DRAWS
 }
 
+/* ---------------- 重置抽奖验证（名称 + ID） ---------------- */
+
+// 管理员凭据：只有输入匹配才能重置抽奖次数，可自行修改这两行
+const RESET_ADMIN_NAME = 'kirin'
+const RESET_ADMIN_ID = '2024'
+
+const resetModalOpen = ref(false)
+const resetName = ref('')
+const resetId = ref('')
+const resetError = ref('')
+
+function openResetModal() {
+  resetName.value = ''
+  resetId.value = ''
+  resetError.value = ''
+  resetModalOpen.value = true
+}
+
+function closeResetModal() {
+  resetModalOpen.value = false
+}
+
+/** 校验通过才真正执行重置 */
+function confirmReset() {
+  const nameOk = resetName.value.trim() === RESET_ADMIN_NAME
+  const idOk = resetId.value.trim() === RESET_ADMIN_ID
+  if (nameOk && idOk) {
+    resetDraws()
+    closeResetModal()
+  } else {
+    resetError.value = nameOk ? 'ID 不正确' : '名称不正确'
+  }
+}
+
 onMounted(startShimmer)
 
 onBeforeUnmount(() => {
@@ -374,13 +408,13 @@ onBeforeUnmount(() => {
     ✏️
   </button>
 
-  <!-- 隐形入口：固定在页面左上角，重置抽奖次数 -->
+  <!-- 隐形入口：固定在页面左上角，点击弹出验证弹窗，验证通过才重置抽奖次数 -->
   <button
     class="secret-reset"
     type="button"
     aria-label="重置抽奖次数"
     title="重置抽奖次数"
-    @click="resetDraws"
+    @click="openResetModal"
   >
     🔄
   </button>
@@ -480,6 +514,49 @@ onBeforeUnmount(() => {
         <div class="editor-footer">
           <button class="ghost-btn" @click="resetPool">恢复默认</button>
           <button class="dialog-button slim" @click="closeEditor">完成</button>
+        </div>
+      </div>
+    </div>
+  </Transition>
+
+  <!-- 重置抽奖验证弹窗：名称 + ID 校验通过才能重置 -->
+  <Transition name="pop">
+    <div v-if="resetModalOpen" class="result-mask reset-mask" @click.self="closeResetModal">
+      <div class="result-dialog reset-dialog">
+        <button class="dialog-close" @click="closeResetModal">✕</button>
+        <p class="editor-title">🔒 重置抽奖次数</p>
+        <p class="editor-subtitle">
+          该操作将恢复全部抽奖次数，请输入管理员名称与 ID 验证
+        </p>
+
+        <div class="reset-fields">
+          <label class="reset-field">
+            <span>名称</span>
+            <input
+              v-model="resetName"
+              type="text"
+              placeholder="请输入管理员名称"
+              autocomplete="off"
+              @keyup.enter="confirmReset"
+            />
+          </label>
+          <label class="reset-field">
+            <span>ID</span>
+            <input
+              v-model="resetId"
+              type="password"
+              placeholder="请输入管理员 ID"
+              autocomplete="off"
+              @keyup.enter="confirmReset"
+            />
+          </label>
+        </div>
+
+        <p class="editor-error">{{ resetError || '　' }}</p>
+
+        <div class="editor-footer">
+          <button class="ghost-btn" @click="closeResetModal">取消</button>
+          <button class="dialog-button slim" @click="confirmReset">确认重置</button>
         </div>
       </div>
     </div>
@@ -1043,5 +1120,52 @@ onBeforeUnmount(() => {
 
 .pop-enter-from .result-dialog {
   transform: scale(0.6);
+}
+
+/* ---------------- 重置验证弹窗 ---------------- */
+.reset-dialog {
+  width: min(88vw, 340px);
+}
+
+.reset-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.reset-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reset-field span {
+  flex: 0 0 42px;
+  text-align: right;
+  font-size: 14px;
+  color: #8a93a6;
+}
+
+.reset-field input {
+  flex: 1;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.reset-field input::placeholder {
+  color: rgba(160, 168, 184, 0.55);
+}
+
+.reset-field input:focus {
+  border-color: var(--primary, #ffb02e);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #ffb02e) 25%, transparent);
 }
 </style>
