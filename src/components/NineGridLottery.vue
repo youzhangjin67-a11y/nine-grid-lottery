@@ -384,7 +384,7 @@ function resetDraws() {
   remaining.value = TOTAL_DRAWS === Infinity ? Infinity : TOTAL_DRAWS
 }
 
-/* ---------------- 抽奖资格获取（游戏名称 + 用户ID） ---------------- */
+/* ---------------- 抽奖资格获取（游戏名称 + 兑换CDK） ---------------- */
 // 目前暂无后端：前端模拟 —— 名称与 ID 不为空即视为登录/获取成功。
 // 接入后端后，只需在 submitQualify() 中把模拟延时换成真实接口校验即可。
 //
@@ -428,7 +428,7 @@ function submitQualify() {
   const name = gameName.value.trim()
   const id = gameId.value.trim()
   if (!name && !id) {
-    qualifyError.value = '请输入游戏名称和用户ID'
+    qualifyError.value = '请输入游戏名称和兑换CDK'
     return
   }
   if (!name) {
@@ -436,7 +436,7 @@ function submitQualify() {
     return
   }
   if (!id) {
-    qualifyError.value = '请输入用户ID'
+    qualifyError.value = '请输入兑换CDK'
     return
   }
 
@@ -597,7 +597,7 @@ onBeforeUnmount(() => {
     </div>
   </Transition>
 
-  <!-- 获取抽奖资格弹窗：填写游戏名称 + 用户ID（暂无后端，非空即成功） -->
+  <!-- 获取抽奖资格弹窗：填写游戏名称 + 兑换CDK（暂无后端，非空即成功） -->
   <Transition name="pop">
     <div v-if="qualifyModalOpen" class="result-mask reset-mask" @click.self="closeQualifyModal">
       <div class="result-dialog reset-dialog">
@@ -607,7 +607,7 @@ onBeforeUnmount(() => {
         <template v-if="qualifyState !== 'success'">
           <p class="editor-title">获取抽奖资格</p>
           <p class="editor-subtitle">
-            填写你的游戏名称与用户ID，即可获得本轮抽奖机会
+            填写你的游戏名称与兑换CDK，即可获得本轮抽奖机会
           </p>
 
           <div class="reset-fields">
@@ -624,12 +624,12 @@ onBeforeUnmount(() => {
               />
             </label>
             <label class="reset-field">
-              <span>用户ID</span>
+              <span>兑换CDK</span>
               <input
                 v-model="gameId"
-                type="text"
+                type="password"
                 maxlength="20"
-                placeholder="请输入你的用户ID"
+                placeholder="请输入兑换CDK"
                 autocomplete="off"
                 :disabled="qualifyState === 'submitting'"
                 @keyup.enter="submitQualify"
