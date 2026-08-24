@@ -280,12 +280,43 @@ const remaining = ref(TOTAL_DRAWS === Infinity ? Infinity : TOTAL_DRAWS)
 const winner = ref(null) // 中奖结果 { prize, index }
 let timer = null
 
-const canDraw = computed(() => !rolling.value && remaining.value > 0 && !winner.value)
+/* ---------------- 登录状态 ---------------- */
+// 未登录：无抽奖次数，点击抽奖按钮会引导打开登录弹窗
+// 登录信息复用资格弹窗保存的 localStorage 数据
+const QUALIFY_USER_KEY = 'lottery-qualify-user'
+
+const user = ref(null)
+try {
+  const savedUser = JSON.parse(localStorage.getItem(QUALIFY_USER_KEY) || 'null')
+  if (savedUser && savedUser.name) user.value = savedUser
+} catch (e) { /* ignore */ }
+
+const isLoggedIn = computed(() => !!(user.value && user.value.name))
+
+/** 退出登录：清空用户态与剩余次数（保留本地回填信息便于下次登录） */
+function logout() {
+  user.value = null
+  clearTimeout(settleTimer)
+  winner.value = null
+  remaining.value = 0
+}
+
+const canDraw = computed(() => isLoggedIn.value && !rolling.value && remaining.value > 0 && !winner.value)
 const buttonText = computed(() => {
+  if (!isLoggedIn.value) return '请先\n登录'
   if (rolling.value) return '抽奖中'
   if (remaining.value <= 0) return '已用完'
   return '开始\n抽奖'
 })
+
+/** 抽奖按钮统一入口：未登录 → 打开登录弹窗；已登录 → 开始滚动 */
+function onDrawClick() {
+  if (!isLoggedIn.value) {
+    openQualifyModal()
+    return
+  }
+  startRoll()
+}
 
 /**
  * 计算第 step 步的间隔时长：
@@ -354,10 +385,10 @@ function resetDraws() {
 }
 
 /* ---------------- 抽奖资格获取（游戏名称 + 用户ID） ---------------- */
-// 目前暂无后端：前端模拟 —— 名称与 ID 不为空即视为获取成功。
+// 目前暂无后端：前端模拟 —— 名称与 ID 不为空即视为登录/获取成功。
 // 接入后端后，只需在 submitQualify() 中把模拟延时换成真实接口校验即可。
-
-const QUALIFY_USER_KEY = 'lottery-qualify-user'
+//
+// QUALIFY_USER_KEY 已在上方「登录状态」段定义
 
 const qualifyModalOpen = ref(false)
 const gameName = ref('')
@@ -418,6 +449,7 @@ function submitQualify() {
       localStorage.setItem(QUALIFY_USER_KEY, JSON.stringify({ name, id }))
     } catch (e) { /* ignore */ }
 
+    user.value = { name, id } // 写入登录态
     resetDraws() // 发放抽奖次数
     qualifyState.value = 'success'
   }, 600)
@@ -449,16 +481,17 @@ onBeforeUnmount(() => {
     ✏️
   </button>
 
-  <!-- 隐形入口：固定在页面左上角，点击弹出「获取抽奖资格」弹窗 -->
-  <button
-    class="secret-reset"
-    type="button"
-    aria-label="获取抽奖资格"
-    title="获取抽奖资格"
-    @click="openQualifyModal"
-  >
-    🔄
-  </button>
+  <!-- 登录条：位于「幸运大抽奖」标题下方 -->
+  <div class="login-bar">
+    <template v-if="isLoggedIn">
+      <span class="login-welcome">👤 {{ user.name }}</span>
+      <button class="login-btn ghost" type="button" @click="logout">退出登录</button>
+    </template>
+    <template v-else>
+      <button class="login-btn primary" type="button" @click="openQualifyModal">🔐 登录</button>
+      <span class="login-tip">登录后即可获得 {{ TOTAL_DRAWS === Infinity ? '∞' : TOTAL_DRAWS }} 次抽奖机会</span>
+    </template>
+  </div>
 
   <div class="lottery-card">
     <div class="lottery-grid" :class="{ spinning: rolling }">
@@ -468,8 +501,7 @@ onBeforeUnmount(() => {
           v-if="cell - 1 === BUTTON_CELL"
           class="grid-button"
           :class="{ disabled: !canDraw }"
-          :disabled="!canDraw"
-          @click="startRoll"
+          @click="onDrawClick"
         >
           {{ buttonText }}
         </button>
@@ -496,8 +528,13 @@ onBeforeUnmount(() => {
     </div>
 
     <p class="remaining-tip">
-      剩余抽奖次数：<b>{{ remaining === Infinity ? '∞' : remaining }}</b>
-      <span class="pool-tip">｜本奖池共 <b>{{ prizePool.length }}</b> 种奖品，每轮随机上格</span>
+      <template v-if="!isLoggedIn">
+        <span class="pool-tip">未登录状态，请先在上方登录以获取抽奖机会</span>
+      </template>
+      <template v-else>
+        剩余抽奖次数：<b>{{ remaining === Infinity ? '∞' : remaining }}</b>
+        <span class="pool-tip">｜本奖池共 <b>{{ prizePool.length }}</b> 种奖品，每轮随机上格</span>
+      </template>
     </p>
   </div>
 
@@ -1196,6 +1233,58 @@ onBeforeUnmount(() => {
 
 .pop-enter-from .result-dialog {
   transform: scale(0.6);
+}
+
+/* ---------------- 登录条（标题下方） ---------------- */
+.login-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 2px;
+  min-height: 34px;
+}
+
+.login-btn {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.login-btn.primary {
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  background: linear-gradient(135deg, #ff9a3d, #f4572e);
+  box-shadow: 0 3px 12px rgba(244, 87, 46, 0.4);
+}
+
+.login-btn.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(244, 87, 46, 0.5);
+}
+
+.login-btn.ghost {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.55);
+  color: #6b625a;
+}
+
+.login-btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.login-tip {
+  font-size: 12.5px;
+  color: rgba(107, 98, 90, 0.85);
+}
+
+.login-welcome {
+  font-size: 14px;
+  font-weight: 600;
+  color: #5c534b;
 }
 
 /* ---------------- 获取抽奖资格弹窗 ---------------- */
